@@ -12,11 +12,11 @@
         "playwright": "^1.48.0"
     },
     "devDependencies": {
-        "@apify/eslint-config": "^1.0.0",
+        "@apify/eslint-config": "^1.0.1",
         "@apify/tsconfig": "^0.1.1",
         "@types/jquery": "^3.5.33",
         "@types/node": "^22.15.32",
-        "eslint": "^9.29.0",
+        "eslint": "^8.57.1",
         "eslint-config-prettier": "^10.1.5",
         "globals": "^16.2.0",
         "prettier": "^3.5.3",
