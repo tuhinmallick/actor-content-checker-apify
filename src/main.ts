@@ -14,7 +14,7 @@ export interface UrlConfig {
 }
 
 export interface Input {
-    urls: string[];
+    urls: string;
     contentSelector: string;
     screenshotSelector?: string;
     sendNotificationText?: string;
@@ -31,7 +31,7 @@ const input = await Actor.getInput() as Input;
 await validateInput(input);
 
 const {
-    urls: urlStrings,
+    urls: urlsString,
     contentSelector,
     screenshotSelector = contentSelector,
     sendNotificationText,
@@ -41,6 +41,9 @@ const {
     maxRetries = 5,
     retryStrategy = 'on-block', // 'on-block', 'on-all-errors', 'never-retry'
 } = input;
+
+// Parse URLs string into array (split by newlines and filter empty lines)
+const urlStrings = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
 
 // Convert string URLs to UrlConfig objects
 const urls: UrlConfig[] = urlStrings.map(url => ({

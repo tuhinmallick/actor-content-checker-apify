@@ -5,18 +5,10 @@
   "properties": {
     "urls": {
       "title": "URLs to Monitor",
-      "type": "array",
-      "description": "List of URLs to monitor for content changes",
-      "editor": "select",
-      "items": {
-        "type": "string",
-        "enum": [
-          "https://example.com",
-          "https://www.apify.com/change-log",
-          "https://github.com/apify/apify-cli"
-        ]
-      },
-      "prefill": ["https://example.com"]
+      "type": "string",
+      "description": "URLs to monitor for content changes (one URL per line)",
+      "editor": "textarea",
+      "prefill": "https://example.com\nhttps://www.apify.com/change-log"
     },
     "contentSelector": {
       "title": "Content Selector",

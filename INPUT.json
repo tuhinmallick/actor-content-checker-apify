@@ -1,10 +1,8 @@
 {
-  "urls": [
-    "https://www.apify.com/change-log"
-  ],
+  "urls": "https://www.apify.com/change-log\nhttps://github.com/apify/apify-cli\nhttps://example.com",
   "contentSelector": "article",
   "screenshotSelector": "article",
-  "sendNotificationText": "Apify found a new change!",
+  "sendNotificationText": "Content changed!",
   "sendNotificationTo": "test@example.com",
   "informOnError": "email",
   "navigationTimeout": 30000,
