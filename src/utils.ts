@@ -43,15 +43,30 @@ export const screenshotDOMElement = async (page: Page, selector: string, padding
 
 export const validateInput = async (input: Input) => {
     // check inputs
-    if (!input || !input.urls || !Array.isArray(input.urls) || input.urls.length === 0) {
-        await Actor.fail('Invalid input: Input must be a JSON object with a "urls" array containing at least one URL configuration!');
+    if (!input || !input.urls || typeof input.urls !== 'string' || input.urls.trim().length === 0) {
+        await Actor.fail('Invalid input: Input must be a JSON object with a "urls" string containing at least one URL!');
     }
     
-    // validate each URL configuration
-    for (let i = 0; i < input.urls.length; i++) {
-        const urlConfig = input.urls[i];
-        if (!urlConfig.url || !urlConfig.contentSelector) {
-            await Actor.fail(`Invalid input: URL configuration at index ${i} must have "url" and "contentSelector" fields!`);
+    if (!input.contentSelector) {
+        await Actor.fail('Invalid input: "contentSelector" field is required!');
+    }
+    
+    if (!input.sendNotificationTo) {
+        await Actor.fail('Invalid input: "sendNotificationTo" field is required!');
+    }
+    
+    if (!input.informOnError) {
+        await Actor.fail('Invalid input: "informOnError" field is required!');
+    }
+    
+    // Validate that URLs are valid
+    const urlStrings = input.urls.split('\n').map(url => url.trim()).filter(url => url.length > 0);
+    for (let i = 0; i < urlStrings.length; i++) {
+        const url = urlStrings[i];
+        try {
+            new URL(url);
+        } catch (error) {
+            await Actor.fail(`Invalid input: URL at line ${i + 1} is not valid: ${url}`);
         }
     }
 };

@@ -1,18 +1,11 @@
 {
-  "urls": [
-    {
-      "url": "https://www.apify.com/change-log",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Apify found a new change!"
-    }
-  ],
+  "urls": "https://www.apify.com/change-log\nhttps://github.com/apify/apify-cli\nhttps://example.com",
+  "contentSelector": "article",
+  "screenshotSelector": "article",
+  "sendNotificationText": "Content changed!",
   "sendNotificationTo": "test@example.com",
   "informOnError": "email",
   "navigationTimeout": 30000,
   "maxRetries": 5,
-  "retryStrategy": "on-block",
-  "proxy": {
-    "useApifyProxy": false
-  }
+  "retryStrategy": "on-block"
 }

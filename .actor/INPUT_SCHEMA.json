@@ -5,52 +5,44 @@
   "properties": {
     "urls": {
       "title": "URLs to Monitor",
-      "type": "array",
-      "description": "List of URLs to monitor for content changes. Use the Request List Sources editor to add URLs easily.",
-      "editor": "requestListSources",
-      "prefill": [
-        {
-          "url": "https://example.com",
-          "contentSelector": ".main-content"
-        }
-      ],
-      "items": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "title": "URL",
-            "type": "string",
-            "description": "The URL of the webpage to monitor"
-          },
-          "contentSelector": {
-            "title": "Content Selector",
-            "type": "string",
-            "description": "CSS selector for the content to monitor (e.g., '.main-content', '#article', 'article')"
-          },
-          "screenshotSelector": {
-            "title": "Screenshot Selector",
-            "type": "string",
-            "description": "CSS selector for screenshot capture (optional, defaults to contentSelector)"
-          },
-          "sendNotificationText": {
-            "title": "Notification Text",
-            "type": "string",
-            "description": "Custom text to include in notifications (optional)"
-          }
-        },
-        "required": ["url", "contentSelector"]
-      }
+      "type": "string",
+      "description": "URLs to monitor for content changes (one URL per line)",
+      "editor": "textarea",
+      "prefill": "https://example.com\nhttps://www.apify.com/change-log"
+    },
+    "contentSelector": {
+      "title": "Content Selector",
+      "type": "string",
+      "description": "CSS selector for the content to monitor (e.g., '.main-content', '#article', 'article')",
+      "editor": "textfield",
+      "prefill": ".main-content"
+    },
+    "screenshotSelector": {
+      "title": "Screenshot Selector",
+      "type": "string",
+      "description": "CSS selector for screenshot capture (optional, defaults to contentSelector)",
+      "editor": "textfield",
+      "prefill": ".main-content"
+    },
+    "sendNotificationText": {
+      "title": "Notification Text",
+      "type": "string",
+      "description": "Custom text to include in notifications (optional)",
+      "editor": "textfield",
+      "prefill": "Content changed!"
     },
     "sendNotificationTo": {
       "title": "Email Address",
       "type": "string",
       "description": "Email address to send notifications to when content changes",
+      "editor": "textfield",
       "prefill": "your-email@example.com"
     },
     "informOnError": {
       "title": "Inform on Error",
       "type": "string",
       "description": "How to handle errors: 'email', 'slack', or 'none'",
+      "editor": "select",
       "enum": ["email", "slack", "none"],
       "default": "email"
     },
@@ -74,35 +66,10 @@
       "title": "Retry Strategy",
       "type": "string",
       "description": "When to retry failed requests",
+      "editor": "select",
       "enum": ["on-block", "on-all-errors", "never-retry"],
       "default": "on-block"
-    },
-    "proxy": {
-      "title": "Proxy Configuration",
-      "type": "object",
-      "description": "Proxy configuration options",
-      "properties": {
-        "useApifyProxy": {
-          "type": "boolean",
-          "description": "Use Apify proxy",
-          "default": false
-        },
-        "apifyProxyGroups": {
-          "type": "array",
-          "description": "Apify proxy groups to use",
-          "items": {
-            "type": "string"
-          }
-        },
-        "apifyProxyCountry": {
-          "type": "string",
-          "description": "Country for Apify proxy"
-        }
-      },
-      "default": {
-        "useApifyProxy": false
-      }
     }
   },
-  "required": ["urls", "sendNotificationTo", "informOnError"]
+  "required": ["urls", "contentSelector", "sendNotificationTo", "informOnError"]
 }
