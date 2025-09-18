@@ -1,6 +1,6 @@
 /* global $ */
 import { log } from 'apify';
-import type { Page } from 'puppeteer';
+import type { Page } from 'playwright';
 
 const distilCaptcha = async (page: Page) => {
     return page.evaluate(() => {

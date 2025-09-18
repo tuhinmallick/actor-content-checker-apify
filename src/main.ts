@@ -1,6 +1,6 @@
 import type { ProxyConfigurationOptions } from 'apify';
 import { Actor, log } from 'apify';
-import { PuppeteerCrawler,sleep } from 'crawlee';
+import { PlaywrightCrawler,sleep } from 'crawlee';
 
 import { testForBlocks } from './check-captchas.js';
 import { MAX_ATTACHMENT_SIZE_BYTES } from './consts.js';
@@ -63,17 +63,17 @@ let screenshotBuffer: Buffer | undefined;
 let fullPageScreenshot: Buffer | undefined;
 let content: string | undefined;
 
-const crawler = new PuppeteerCrawler({
+const crawler = new PlaywrightCrawler({
     requestQueue,
     proxyConfiguration,
     maxRequestRetries: retryStrategy === 'never-retry' ? 0 : maxRetries,
     launchContext: {
         launchOptions: {
-            defaultViewport: { width: 1920, height: 1080 },
+            viewport: { width: 1920, height: 1080 },
         },
     },
     preNavigationHooks: [async (_crawlingContext, gotoOptions) => {
-        gotoOptions!.waitUntil = 'networkidle2';
+        gotoOptions!.waitUntil = 'networkidle';
         gotoOptions!.timeout = navigationTimeout;
     }],
     requestHandler: async ({ page, response, injectJQuery }) => {
