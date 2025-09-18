@@ -43,12 +43,8 @@ export const screenshotDOMElement = async (page: Page, selector: string, padding
 
 export const validateInput = async (input: Input) => {
     // check inputs
-    if (!input || !input.urls || typeof input.urls !== 'string' || input.urls.trim().length === 0) {
-        await Actor.fail('Invalid input: Input must be a JSON object with a "urls" string containing at least one URL!');
-    }
-    
-    if (!input.contentSelector) {
-        await Actor.fail('Invalid input: "contentSelector" field is required!');
+    if (!input || !input.urls || !Array.isArray(input.urls) || input.urls.length === 0) {
+        await Actor.fail('Invalid input: Input must be a JSON object with a "urls" array containing at least one URL object!');
     }
     
     if (!input.sendNotificationTo) {
@@ -59,15 +55,23 @@ export const validateInput = async (input: Input) => {
         await Actor.fail('Invalid input: "informOnError" field is required!');
     }
     
-    // Validate that URLs are valid
-    const urlStrings = input.urls.split('\n').map(url => url.trim()).filter(url => url.length > 0);
-
-    for (let i = 0; i < urlStrings.length; i++) {
-        const url = urlStrings[i];
+    // Validate each URL object
+    for (let i = 0; i < input.urls.length; i++) {
+        const urlConfig = input.urls[i];
+        
+        if (!urlConfig.url) {
+            await Actor.fail(`Invalid input: URL object at index ${i} is missing "url" field!`);
+        }
+        
+        if (!urlConfig.contentSelector) {
+            await Actor.fail(`Invalid input: URL object at index ${i} is missing "contentSelector" field!`);
+        }
+        
+        // Validate that URL is valid
         try {
-            new URL(url);
+            new URL(urlConfig.url);
         } catch (error) {
-            await Actor.fail(`Invalid input: URL at line ${i + 1} is not valid: ${url}`);
+            await Actor.fail(`Invalid input: URL at index ${i} is not valid: ${urlConfig.url}`);
         }
     }
 };

@@ -14,15 +14,17 @@ export interface UrlConfig {
 }
 
 export interface Input {
-    urls: string;
-    contentSelector: string;
-    screenshotSelector?: string;
-    sendNotificationText?: string;
+    urls: UrlConfig[];
     sendNotificationTo: string;
     navigationTimeout?: number;
     informOnError: string;
     maxRetries?: number;
     retryStrategy?: 'on-block' | 'on-all-errors' | 'never-retry';
+    proxy?: {
+        useApifyProxy?: boolean;
+        apifyProxyGroups?: string[];
+        apifyProxyCountry?: string;
+    };
 }
 
 await Actor.init();
@@ -32,27 +34,14 @@ const input = await Actor.getInput() as Input;
 await validateInput(input);
 
 const {
-    urls: urlsString,
-    contentSelector,
-    screenshotSelector = contentSelector,
-    sendNotificationText,
+    urls,
     sendNotificationTo,
     navigationTimeout = 30000,
     informOnError,
     maxRetries = 5,
     retryStrategy = 'on-block', // 'on-block', 'on-all-errors', 'never-retry'
+    proxy
 } = input;
-
-// Parse URLs string into array (split by newlines and filter empty lines)
-const urlStrings = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
-
-// Convert string URLs to UrlConfig objects
-const urls: UrlConfig[] = urlStrings.map(url => ({
-    url,
-    contentSelector,
-    screenshotSelector,
-    sendNotificationText
-}));
 
 // define name for a key-value store based on task ID or actor ID
 // (to be able to have more content checkers under one Apify account)
@@ -63,7 +52,11 @@ storeName += !process.env.APIFY_ACTOR_TASK_ID ? process.env.APIFY_ACT_ID : proce
 const store = await Actor.openKeyValueStore(storeName);
 
 // RESIDENTIAL proxy would be useful, but we don't want everyone to bother us with those
-const proxyConfiguration = await Actor.createProxyConfiguration({ useApifyProxy: false });
+const proxyConfiguration = await Actor.createProxyConfiguration({ 
+    useApifyProxy: proxy?.useApifyProxy || false,
+    groups: proxy?.apifyProxyGroups,
+    countryCode: proxy?.apifyProxyCountry
+});
 
 const requestQueue = await Actor.openRequestQueue();
 
