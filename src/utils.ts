@@ -1,5 +1,5 @@
-import { log, Actor } from 'apify';
-import type { Page } from 'puppeteer';
+import { Actor,log } from 'apify';
+import type { Page } from 'playwright';
 
 import { MAX_ATTACHMENT_SIZE_BYTES } from './consts.js';
 import type { Input } from './main.js';
@@ -23,7 +23,7 @@ const sendMailOnError = async (sendNotificationTo: string, url: string, fullPage
 };
 
 export const screenshotDOMElement = async (page: Page, selector: string, padding = 0) => {
-    const rect = await page.evaluate((sel) => {
+    const rect = await page.evaluate((sel: string) => {
         const element = document.querySelector(sel);
         const { x, y, width, height } = element!.getBoundingClientRect();
         return { left: x, top: y, width, height, id: element!.id };
