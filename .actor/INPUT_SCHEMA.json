@@ -6,7 +6,8 @@
     "urls": {
       "title": "URLs to Monitor",
       "type": "array",
-      "description": "List of URLs to monitor for content changes",
+      "description": "List of URLs to monitor for content changes. Use the Request List Sources editor to add URLs easily.",
+      "editor": "requestListSources",
       "prefill": [
         {
           "url": "https://example.com",
@@ -19,12 +20,12 @@
           "url": {
             "title": "URL",
             "type": "string",
-            "description": "URL to monitor"
+            "description": "The URL of the webpage to monitor"
           },
           "contentSelector": {
             "title": "Content Selector",
             "type": "string",
-            "description": "CSS selector for the content to monitor"
+            "description": "CSS selector for the content to monitor (e.g., '.main-content', '#article', 'article')"
           },
           "screenshotSelector": {
             "title": "Screenshot Selector",
@@ -43,7 +44,7 @@
     "sendNotificationTo": {
       "title": "Email Address",
       "type": "string",
-      "description": "Email address to send notifications to",
+      "description": "Email address to send notifications to when content changes",
       "prefill": "your-email@example.com"
     },
     "informOnError": {
