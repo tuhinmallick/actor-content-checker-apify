@@ -14,10 +14,7 @@ export interface UrlConfig {
 }
 
 export interface Input {
-    urls: string;
-    contentSelector: string;
-    screenshotSelector?: string;
-    sendNotificationText?: string;
+    urls: UrlConfig[];
     sendNotificationTo: string;
     navigationTimeout?: number;
     informOnError: string;
@@ -27,31 +24,40 @@ export interface Input {
 
 await Actor.init();
 
-const input = await Actor.getInput() as Input;
+// Try to get input from Actor.getInput(), fallback to reading INPUT.json file for local development
+let input: Input;
+try {
+    const inputRaw = await Actor.getInput();
+    
+    // Check if we got a valid input (not a character array)
+    if (inputRaw && typeof inputRaw === 'object' && !Object.keys(inputRaw).every(key => /^\d+$/.test(key))) {
+        input = inputRaw as Input;
+    } else {
+        throw new Error('Invalid input from Actor.getInput()');
+    }
+} catch (error) {
+    // Fallback: read from INPUT.json file for local development
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const inputPath = path.join(process.cwd(), 'INPUT.json');
+    try {
+        const inputFile = await fs.readFile(inputPath, 'utf-8');
+        input = JSON.parse(inputFile) as Input;
+    } catch (fileError) {
+        throw new Error('Could not read input from Actor.getInput() or INPUT.json file');
+    }
+}
+
 await validateInput(input);
 
 const {
-    urls: urlsString,
-    contentSelector,
-    screenshotSelector = contentSelector,
-    sendNotificationText,
+    urls,
     sendNotificationTo,
     navigationTimeout = 30000,
     informOnError,
     maxRetries = 5,
     retryStrategy = 'on-block', // 'on-block', 'on-all-errors', 'never-retry'
 } = input;
-
-// Parse URLs string into array (split by newlines and filter empty lines)
-const urlStrings = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
-
-// Convert string URLs to UrlConfig objects
-const urls: UrlConfig[] = urlStrings.map(url => ({
-    url,
-    contentSelector,
-    screenshotSelector,
-    sendNotificationText
-}));
 
 // define name for a key-value store based on task ID or actor ID
 // (to be able to have more content checkers under one Apify account)
@@ -218,6 +224,17 @@ for (const [urlKey, result] of urlResults) {
 
     if (previousScreenshot === null) {
         log.warning(`Running for the first time for URL: ${url}, no check`);
+        
+        // Push initial data for first run
+        await Actor.pushData({
+            url,
+            previousData: null,
+            content,
+            previousScreenshotUrl: null,
+            currentScreenshotUrl: store.getPublicUrl(currentScreenshotKey),
+            sendNotificationTo,
+            isFirstRun: true
+        });
     } else {
         // store data from this run
         await store.setValue(`previousScreenshot_${urlKey}.png`, previousScreenshot, { contentType: 'image/png' });
