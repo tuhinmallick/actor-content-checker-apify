@@ -6,13 +6,17 @@ import { testForBlocks } from './check-captchas.js';
 import { MAX_ATTACHMENT_SIZE_BYTES } from './consts.js';
 import { createSlackMessage,handleFailedAndThrow, screenshotDOMElement, validateInput } from './utils.js';
 
-export interface Input {
+export interface UrlConfig {
     url: string;
     contentSelector: string;
-    sendNotificationTo: string;
     screenshotSelector?: string;
     sendNotificationText?: string;
-    proxy?: ProxyConfigurationOptions
+}
+
+export interface Input {
+    urls: UrlConfig[];
+    sendNotificationTo: string;
+    proxy?: ProxyConfigurationOptions;
     navigationTimeout?: number;
     informOnError: string;
     maxRetries?: number;
@@ -25,12 +29,8 @@ const input = await Actor.getInput() as Input;
 await validateInput(input);
 
 const {
-    url,
-    contentSelector,
+    urls,
     sendNotificationTo,
-    // if screenshotSelector is not defined, use contentSelector for screenshot
-    screenshotSelector = contentSelector,
-    sendNotificationText,
     proxy = {
         useApifyProxy: false,
     },
@@ -48,20 +48,29 @@ storeName += !process.env.APIFY_ACTOR_TASK_ID ? process.env.APIFY_ACT_ID : proce
 // use or create a named key-value store
 const store = await Actor.openKeyValueStore(storeName);
 
-// get data from previous run
-const previousScreenshot = await store.getValue('currentScreenshot.png') as Buffer | undefined;
-const previousData = await store.getValue('currentData') as string | undefined;
-
 // RESIDENTIAL proxy would be useful, but we don't want everyone to bother us with those
 const proxyConfiguration = await Actor.createProxyConfiguration(proxy);
 
 const requestQueue = await Actor.openRequestQueue();
-await requestQueue.addRequest({ url });
 
-// We gather these in the crawler and then process them later
-let screenshotBuffer: Buffer | undefined;
-let fullPageScreenshot: Buffer | undefined;
-let content: string | undefined;
+// Add all URLs to the request queue
+for (const urlConfig of urls) {
+    await requestQueue.addRequest({ 
+        url: urlConfig.url,
+        userData: {
+            urlConfig,
+            urlKey: Buffer.from(urlConfig.url).toString('base64').replace(/[^a-zA-Z0-9]/g, '')
+        }
+    });
+}
+
+// Store results for each URL
+const urlResults = new Map<string, {
+    screenshotBuffer?: Buffer;
+    fullPageScreenshot?: Buffer;
+    content?: string;
+    urlConfig: UrlConfig;
+}>();
 
 const crawler = new PlaywrightCrawler({
     requestQueue,
@@ -76,9 +85,12 @@ const crawler = new PlaywrightCrawler({
         gotoOptions!.waitUntil = 'networkidle';
         gotoOptions!.timeout = navigationTimeout;
     }],
-    requestHandler: async ({ page, response, injectJQuery }) => {
+    requestHandler: async ({ page, response, injectJQuery, request }) => {
+        const { urlConfig, urlKey } = request.userData as { urlConfig: UrlConfig; urlKey: string };
+        const { url, contentSelector, screenshotSelector = contentSelector } = urlConfig;
+        
         if (response!.status() === 404 && response!.status()) {
-            log.warning(`404 Status - Page not found! Please change the URL`);
+            log.warning(`404 Status - Page not found! Please change the URL: ${url}`);
             return;
         }
         if (response!.status() >= 400) {
@@ -100,7 +112,8 @@ const crawler = new PlaywrightCrawler({
         try {
             await testForBlocks(page);
         } catch (e) {
-            fullPageScreenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 30 }) as Buffer;
+            const fullPageScreenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 30 }) as Buffer;
+            urlResults.set(urlKey, { fullPageScreenshot, urlConfig });
             throw e;
         }
 
@@ -108,6 +121,8 @@ const crawler = new PlaywrightCrawler({
 
         let errorHappened = false;
         let errorMessage;
+        let content: string | undefined;
+        let screenshotBuffer: Buffer | undefined;
 
         try {
             content = await page.$eval(contentSelector, (el) => el.textContent) as string;
@@ -128,117 +143,148 @@ const crawler = new PlaywrightCrawler({
         }
 
         if (errorHappened) {
-            fullPageScreenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 30 }) as Buffer;
+            const fullPageScreenshot = await page.screenshot({ fullPage: true, type: 'jpeg', quality: 30 }) as Buffer;
+            urlResults.set(urlKey, { fullPageScreenshot, urlConfig });
             if (retryStrategy === 'on-all-errors') {
                 const updatedMessage = `${errorMessage} Will retry...`;
                 throw updatedMessage;
             } else {
                 log.warning(errorMessage as string);
             }
+        } else {
+            // Store successful results
+            urlResults.set(urlKey, { screenshotBuffer, content, urlConfig });
         }
     },
 });
 
 await crawler.run();
 
-// All retries to get screenshot failed
-if (!screenshotBuffer) {
-    await handleFailedAndThrow({
-        type: 'screenshot',
-        fullPageScreenshot,
-        informOnError,
-        sendNotificationTo,
-        url,
-    });
-}
-
-if (!content) {
-    await handleFailedAndThrow({
-        type: 'screenshot',
-        fullPageScreenshot,
-        informOnError,
-        sendNotificationTo,
-        url,
-    });
-}
-
-// We got the screenshot
-await store.setValue('currentScreenshot.png', screenshotBuffer, { contentType: 'image/png' });
-
-log.info(`Previous data: ${previousData}`);
-log.info(`Current data: ${content}`);
-await store.setValue('currentData', content);
-
-log.info('Done.');
-
-if (previousScreenshot === null) {
-    log.warning('Running for the first time, no check');
-} else {
-    // store data from this run
-    await store.setValue('previousScreenshot.png', previousScreenshot, { contentType: 'image/png' });
-    await store.setValue('previousData', previousData);
-
-    // check data
-    if (previousData === content) {
-        log.warning('No change');
-    } else {
-        log.warning('Content changed');
-
-        const notificationNote = sendNotificationText ? `Note: ${sendNotificationText}\n\n` : '';
-
-        // create Slack message used by Apify slack integration
-        const message = createSlackMessage({ url, previousData: previousData!, content: content!, kvStoreId: store.id });
-        await Actor.setValue('SLACK_MESSAGE', message);
-
-        await Actor.pushData({
-            url,
-            previousData,
-            content,
-            previousScreenshotUrl: store.getPublicUrl('previousScreenshot.png'),
-            currentScreenshotUrl: store.getPublicUrl('currentScreenshot.png'),
+// Process results for each URL
+for (const [urlKey, result] of urlResults) {
+    const { urlConfig, screenshotBuffer, fullPageScreenshot, content } = result;
+    const { url, sendNotificationText } = urlConfig;
+    
+    // All retries to get screenshot failed
+    if (!screenshotBuffer) {
+        await handleFailedAndThrow({
+            type: 'screenshot',
+            fullPageScreenshot,
+            informOnError,
             sendNotificationTo,
+            url,
         });
+        continue;
+    }
 
-        if (sendNotificationTo) {
-            log.info(`Sending mail to ${sendNotificationTo}...`);
+    if (!content) {
+        await handleFailedAndThrow({
+            type: 'screenshot',
+            fullPageScreenshot,
+            informOnError,
+            sendNotificationTo,
+            url,
+        });
+        continue;
+    }
 
-            const previousScreenshotBase64 = previousScreenshot!.toString('base64');
-            const currentScreenshotBase64 = screenshotBuffer!.toString('base64');
+    // Store current data for this URL
+    const currentScreenshotKey = `currentScreenshot_${urlKey}.png`;
+    const currentDataKey = `currentData_${urlKey}`;
+    
+    await store.setValue(currentScreenshotKey, screenshotBuffer, { contentType: 'image/png' });
+    await store.setValue(currentDataKey, content);
 
-            let text = `URL: ${url}\n\n${notificationNote}Previous data: ${previousData}\n\nCurrent data: ${content}`;
-            const attachments = [];
-            if (previousScreenshotBase64.length + currentScreenshotBase64.length < MAX_ATTACHMENT_SIZE_BYTES) {
-                attachments.push({
-                    filename: 'previousScreenshot.png',
-                    data: previousScreenshotBase64,
-                });
-                attachments.push({
-                    filename: 'currentScreenshot.png',
-                    data: currentScreenshotBase64,
+    // Get previous data for this URL
+    const previousScreenshot = await store.getValue(`previousScreenshot_${urlKey}.png`) as Buffer | undefined;
+    const previousData = await store.getValue(`previousData_${urlKey}`) as string | undefined;
+
+    log.info(`Processing URL: ${url}`);
+    log.info(`Previous data: ${previousData}`);
+    log.info(`Current data: ${content}`);
+
+    if (previousScreenshot === null) {
+        log.warning(`Running for the first time for URL: ${url}, no check`);
+    } else {
+        // store data from this run
+        await store.setValue(`previousScreenshot_${urlKey}.png`, previousScreenshot, { contentType: 'image/png' });
+        await store.setValue(`previousData_${urlKey}`, previousData);
+
+        // check data
+        if (previousData === content) {
+            log.warning(`No change for URL: ${url}`);
+        } else {
+            log.warning(`Content changed for URL: ${url}`);
+
+            const notificationNote = sendNotificationText ? `Note: ${sendNotificationText}\n\n` : '';
+
+            // create Slack message used by Apify slack integration
+            const message = createSlackMessage({ 
+                url, 
+                previousData: previousData!, 
+                content: content!, 
+                kvStoreId: store.id 
+            });
+            await Actor.setValue(`SLACK_MESSAGE_${urlKey}`, message);
+
+            await Actor.pushData({
+                url,
+                previousData,
+                content,
+                previousScreenshotUrl: store.getPublicUrl(`previousScreenshot_${urlKey}.png`),
+                currentScreenshotUrl: store.getPublicUrl(currentScreenshotKey),
+                sendNotificationTo,
+            });
+
+            if (sendNotificationTo) {
+                log.info(`Sending mail to ${sendNotificationTo} for URL: ${url}...`);
+
+                const previousScreenshotBase64 = previousScreenshot!.toString('base64');
+                const currentScreenshotBase64 = screenshotBuffer!.toString('base64');
+
+                let text = `URL: ${url}\n\n${notificationNote}Previous data: ${previousData}\n\nCurrent data: ${content}`;
+                const attachments = [];
+                if (previousScreenshotBase64.length + currentScreenshotBase64.length < MAX_ATTACHMENT_SIZE_BYTES) {
+                    attachments.push({
+                        filename: `previousScreenshot_${urlKey}.png`,
+                        data: previousScreenshotBase64,
+                    });
+                    attachments.push({
+                        filename: `currentScreenshot_${urlKey}.png`,
+                        data: currentScreenshotBase64,
+                    });
+                } else {
+                    log.warning(`Screenshots are bigger than ${MAX_ATTACHMENT_SIZE_BYTES}, not sending them as part of email attachment for URL: ${url}.`);
+                    text += `\n\nScreenshots are bigger than ${MAX_ATTACHMENT_SIZE_BYTES}, not sending them as part of email attachment.`;
+                }
+
+                await Actor.call('apify/send-mail', {
+                    to: sendNotificationTo,
+                    subject: `Apify content checker - page changed! (${url})`,
+                    text,
+                    attachments,
                 });
             } else {
-                log.warning(`Screenshots are bigger than ${MAX_ATTACHMENT_SIZE_BYTES}, not sending them as part of email attachment.`);
-                text += `\n\nScreenshots are bigger than ${MAX_ATTACHMENT_SIZE_BYTES}, not sending them as part of email attachment.`;
+                log.warning(`No e-mail address provided, email notification skipped for URL: ${url}`);
             }
-
-            await Actor.call('apify/send-mail', {
-                to: sendNotificationTo,
-                subject: 'Apify content checker - page changed!',
-                text,
-                attachments,
-            });
-        } else {
-            log.warning('No e-mail address provided, email notification skipped');
         }
     }
 }
-log.info('You can check the output in the named key-value store on the following URLs:');
-log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/currentScreenshot.png`);
-log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/currentData`);
 
-if (previousScreenshot !== null) {
-    log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/previousScreenshot.png`);
-    log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/previousData`);
+log.info('Done processing all URLs.');
+log.info('You can check the output in the named key-value store on the following URLs:');
+for (const [urlKey, result] of urlResults) {
+    const { urlConfig } = result;
+    const { url } = urlConfig;
+    log.info(`URL: ${url}`);
+    log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/currentScreenshot_${urlKey}.png`);
+    log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/currentData_${urlKey}`);
+    
+    const previousScreenshot = await store.getValue(`previousScreenshot_${urlKey}.png`);
+    if (previousScreenshot !== null) {
+        log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/previousScreenshot_${urlKey}.png`);
+        log.info(`- https://api.apify.com/v2/key-value-stores/${store.id}/records/previousData_${urlKey}`);
+    }
 }
 
 await Actor.exit();
