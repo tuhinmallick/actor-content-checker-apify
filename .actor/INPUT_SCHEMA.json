@@ -7,7 +7,7 @@
       "title": "URLs to Monitor",
       "type": "array",
       "description": "List of URLs to monitor for content changes. Use the Request List Sources editor to add URLs easily.",
-      "editor": "select",
+      "editor": "requestListSources",
       "prefill": [
         {
           "url": "https://example.com",
@@ -16,16 +16,29 @@
       ],
       "items": {
         "type": "object",
-        "enum": [
-          {
-            "url": "https://example.com",
-            "contentSelector": ".main-content"
+        "properties": {
+          "url": {
+            "title": "URL",
+            "type": "string",
+            "description": "The URL of the webpage to monitor"
           },
-          {
-            "url": "https://www.apify.com/change-log",
-            "contentSelector": "article"
+          "contentSelector": {
+            "title": "Content Selector",
+            "type": "string",
+            "description": "CSS selector for the content to monitor (e.g., '.main-content', '#article', 'article')"
+          },
+          "screenshotSelector": {
+            "title": "Screenshot Selector",
+            "type": "string",
+            "description": "CSS selector for screenshot capture (optional, defaults to contentSelector)"
+          },
+          "sendNotificationText": {
+            "title": "Notification Text",
+            "type": "string",
+            "description": "Custom text to include in notifications (optional)"
           }
-        ]
+        },
+        "required": ["url", "contentSelector"]
       }
     },
     "sendNotificationTo": {
