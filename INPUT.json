@@ -1,0 +1,18 @@
+{
+  "urls": [
+    {
+      "url": "https://www.apify.com/change-log",
+      "contentSelector": "article",
+      "screenshotSelector": "article",
+      "sendNotificationText": "Apify found a new change!"
+    }
+  ],
+  "sendNotificationTo": "test@example.com",
+  "informOnError": "email",
+  "navigationTimeout": 30000,
+  "maxRetries": 5,
+  "retryStrategy": "on-block",
+  "proxy": {
+    "useApifyProxy": false
+  }
+}
