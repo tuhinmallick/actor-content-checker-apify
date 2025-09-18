@@ -1,10 +1,10 @@
-import { Actor, log } from 'apify';
 import type { ProxyConfigurationOptions } from 'apify';
-import { sleep, PuppeteerCrawler } from 'crawlee';
+import { Actor, log } from 'apify';
+import { PuppeteerCrawler,sleep } from 'crawlee';
 
 import { testForBlocks } from './check-captchas.js';
 import { MAX_ATTACHMENT_SIZE_BYTES } from './consts.js';
-import { handleFailedAndThrow, screenshotDOMElement, validateInput, createSlackMessage } from './utils.js';
+import { createSlackMessage,handleFailedAndThrow, screenshotDOMElement, validateInput } from './utils.js';
 
 export interface Input {
     url: string;
