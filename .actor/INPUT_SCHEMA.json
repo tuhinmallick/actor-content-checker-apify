@@ -2,41 +2,53 @@
   "title": "Content checker input",
   "type": "object",
   "schemaVersion": 1,
-  "required": ["url", "contentSelector"],
+  "required": ["urls"],
   "properties": {
-      "url": {
-          "title": "URL to check",
-          "type": "string",
-          "description": "URL of a web page to be monitored",
-          "editor": "textfield",
-          "prefill": "https://www.apify.com/change-log"
-      },
-      "contentSelector": {
-          "title": "Monitored area selector",
-          "type": "string",
-          "description": "CSS selector of an area you want to monitor",
-          "editor": "textfield",
-          "prefill": "article"
-      },
-      "screenshotSelector": {
-          "title": "Screenshot selector",
-          "type": "string",
-          "description": "CSS selector of a screenshot you want to get",
-          "editor": "textfield",
-          "prefill": "article"
+      "urls": {
+          "title": "URLs to monitor",
+          "type": "array",
+          "description": "Array of URLs to monitor for content changes",
+          "items": {
+              "type": "object",
+              "required": ["url", "contentSelector"],
+              "properties": {
+                  "url": {
+                      "title": "URL to check",
+                      "type": "string",
+                      "description": "URL of a web page to be monitored",
+                      "editor": "textfield",
+                      "prefill": "https://www.apify.com/change-log"
+                  },
+                  "contentSelector": {
+                      "title": "Monitored area selector",
+                      "type": "string",
+                      "description": "CSS selector of an area you want to monitor",
+                      "editor": "textfield",
+                      "prefill": "article"
+                  },
+                  "screenshotSelector": {
+                      "title": "Screenshot selector",
+                      "type": "string",
+                      "description": "CSS selector of a screenshot you want to get (defaults to contentSelector)",
+                      "editor": "textfield",
+                      "prefill": "article"
+                  },
+                  "sendNotificationText": {
+                      "title": "Notification Text",
+                      "type": "string",
+                      "description": "Optional text to include in the email notification for this specific URL.",
+                      "editor": "textfield",
+                      "prefill": "Apify found a new change!"
+                  }
+              }
+          },
+          "editor": "array"
       },
       "sendNotificationTo": {
           "title": "Email address",
           "type": "string",
           "description": "Email address where you want to get the notification",
           "editor": "textfield"
-      },
-      "sendNotificationText": {
-          "title": "Notification Text",
-          "type": "string",
-          "description": "Optional text to include in the email notification.",
-          "editor": "textfield",
-          "prefill": "Apify found a new change!"
       },
       "informOnError": {
           "title": "Notification in case of error",
