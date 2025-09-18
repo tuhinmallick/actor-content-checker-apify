@@ -24,32 +24,26 @@ export interface Input {
 
 await Actor.init();
 
-// Try to get input from Actor.getInput(), fallback to reading INPUT.json file
+// Try to get input from Actor.getInput(), fallback to reading INPUT.json file for local development
 let input: Input;
 try {
     const inputRaw = await Actor.getInput();
-    log.info('Raw input received:', typeof inputRaw, inputRaw);
     
-    // Check if we got a valid input
+    // Check if we got a valid input (not a character array)
     if (inputRaw && typeof inputRaw === 'object' && !Object.keys(inputRaw).every(key => /^\d+$/.test(key))) {
-        // It's a proper object, not a character array
         input = inputRaw as Input;
-        log.info('Using Actor.getInput() result');
     } else {
         throw new Error('Invalid input from Actor.getInput()');
     }
 } catch (error) {
     // Fallback: read from INPUT.json file for local development
-    log.info('Actor.getInput() failed, reading from INPUT.json file');
     const fs = await import('fs/promises');
     const path = await import('path');
     const inputPath = path.join(process.cwd(), 'INPUT.json');
     try {
         const inputFile = await fs.readFile(inputPath, 'utf-8');
         input = JSON.parse(inputFile) as Input;
-        log.info('Successfully read and parsed INPUT.json');
     } catch (fileError) {
-        log.error('Failed to read INPUT.json:', fileError);
         throw new Error('Could not read input from Actor.getInput() or INPUT.json file');
     }
 }
