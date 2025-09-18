@@ -7,7 +7,7 @@
       "title": "URLs to Monitor",
       "type": "array",
       "description": "List of URLs to monitor for content changes. Use the Request List Sources editor to add URLs easily.",
-      "editor": "requestListSources",
+      "editor": "select",
       "prefill": [
         {
           "url": "https://example.com",
@@ -45,12 +45,14 @@
       "title": "Email Address",
       "type": "string",
       "description": "Email address to send notifications to when content changes",
+      "editor": "textfield",
       "prefill": "your-email@example.com"
     },
     "informOnError": {
       "title": "Inform on Error",
       "type": "string",
       "description": "How to handle errors: 'email', 'slack', or 'none'",
+      "editor": "select",
       "enum": ["email", "slack", "none"],
       "default": "email"
     },
@@ -74,6 +76,7 @@
       "title": "Retry Strategy",
       "type": "string",
       "description": "When to retry failed requests",
+      "editor": "select",
       "enum": ["on-block", "on-all-errors", "never-retry"],
       "default": "on-block"
     },
