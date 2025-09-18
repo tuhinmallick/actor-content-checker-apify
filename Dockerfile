@@ -13,8 +13,7 @@ COPY --chown=myuser package*.json Dockerfile ./
 # Install all dependencies. Don't audit to speed up the installation.
 RUN npm install --include=dev --audit=false
 
-# Install Playwright browsers
-RUN npx playwright install --with-deps
+# Playwright browsers are already installed in the base image
 
 # Next, copy the source files using the user set
 # in the base image.
@@ -47,8 +46,7 @@ RUN npm --quiet set progress=false \
     && npm --version \
     && rm -r ~/.npm
 
-# Install Playwright browsers
-RUN npx playwright install --with-deps
+# Playwright browsers are already installed in the base image
 
 # Copy built JS files from builder image
 COPY --from=builder --chown=myuser /home/myuser/dist ./dist
