@@ -14,9 +14,11 @@ export interface UrlConfig {
 }
 
 export interface Input {
-    urls: UrlConfig[];
+    urls: string[];
+    contentSelector: string;
+    screenshotSelector?: string;
+    sendNotificationText?: string;
     sendNotificationTo: string;
-    proxy?: ProxyConfigurationOptions;
     navigationTimeout?: number;
     informOnError: string;
     maxRetries?: number;
@@ -29,16 +31,24 @@ const input = await Actor.getInput() as Input;
 await validateInput(input);
 
 const {
-    urls,
+    urls: urlStrings,
+    contentSelector,
+    screenshotSelector = contentSelector,
+    sendNotificationText,
     sendNotificationTo,
-    proxy = {
-        useApifyProxy: false,
-    },
     navigationTimeout = 30000,
     informOnError,
     maxRetries = 5,
     retryStrategy = 'on-block', // 'on-block', 'on-all-errors', 'never-retry'
 } = input;
+
+// Convert string URLs to UrlConfig objects
+const urls: UrlConfig[] = urlStrings.map(url => ({
+    url,
+    contentSelector,
+    screenshotSelector,
+    sendNotificationText
+}));
 
 // define name for a key-value store based on task ID or actor ID
 // (to be able to have more content checkers under one Apify account)
@@ -49,7 +59,7 @@ storeName += !process.env.APIFY_ACTOR_TASK_ID ? process.env.APIFY_ACT_ID : proce
 const store = await Actor.openKeyValueStore(storeName);
 
 // RESIDENTIAL proxy would be useful, but we don't want everyone to bother us with those
-const proxyConfiguration = await Actor.createProxyConfiguration(proxy);
+const proxyConfiguration = await Actor.createProxyConfiguration({ useApifyProxy: false });
 
 const requestQueue = await Actor.openRequestQueue();
 

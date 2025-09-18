@@ -44,15 +44,19 @@ export const screenshotDOMElement = async (page: Page, selector: string, padding
 export const validateInput = async (input: Input) => {
     // check inputs
     if (!input || !input.urls || !Array.isArray(input.urls) || input.urls.length === 0) {
-        await Actor.fail('Invalid input: Input must be a JSON object with a "urls" array containing at least one URL configuration!');
+        await Actor.fail('Invalid input: Input must be a JSON object with a "urls" array containing at least one URL!');
     }
     
-    // validate each URL configuration
-    for (let i = 0; i < input.urls.length; i++) {
-        const urlConfig = input.urls[i];
-        if (!urlConfig.url || !urlConfig.contentSelector) {
-            await Actor.fail(`Invalid input: URL configuration at index ${i} must have "url" and "contentSelector" fields!`);
-        }
+    if (!input.contentSelector) {
+        await Actor.fail('Invalid input: "contentSelector" field is required!');
+    }
+    
+    if (!input.sendNotificationTo) {
+        await Actor.fail('Invalid input: "sendNotificationTo" field is required!');
+    }
+    
+    if (!input.informOnError) {
+        await Actor.fail('Invalid input: "informOnError" field is required!');
     }
 };
 
