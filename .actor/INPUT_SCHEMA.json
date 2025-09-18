@@ -7,7 +7,7 @@
       "title": "URLs to Monitor",
       "type": "array",
       "description": "List of URLs to monitor for content changes. Use the Request List Sources editor to add URLs easily.",
-      "editor": "requestListSources",
+      "editor": "select",
       "prefill": [
         {
           "url": "https://example.com",
