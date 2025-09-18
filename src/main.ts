@@ -14,10 +14,7 @@ export interface UrlConfig {
 }
 
 export interface Input {
-    urls: string;
-    contentSelector: string;
-    screenshotSelector?: string;
-    sendNotificationText?: string;
+    urls: UrlConfig[];
     sendNotificationTo: string;
     navigationTimeout?: number;
     informOnError: string;
@@ -27,52 +24,46 @@ export interface Input {
 
 await Actor.init();
 
-// For local development, read from INPUT.json file if it exists
+// Try to get input from Actor.getInput(), fallback to reading INPUT.json file
 let input: Input;
 try {
-    input = await Actor.getInput() as Input;
-    log.info('Using Actor.getInput()');
+    const inputRaw = await Actor.getInput();
+    log.info('Raw input received:', typeof inputRaw, inputRaw);
+    
+    // Check if we got a valid input
+    if (inputRaw && typeof inputRaw === 'object' && !Object.keys(inputRaw).every(key => /^\d+$/.test(key))) {
+        // It's a proper object, not a character array
+        input = inputRaw as Input;
+        log.info('Using Actor.getInput() result');
+    } else {
+        throw new Error('Invalid input from Actor.getInput()');
+    }
 } catch (error) {
-    // If Actor.getInput() fails (e.g., in local development), try to read from INPUT.json
-    log.info('Actor.getInput() failed, trying to read from INPUT.json');
+    // Fallback: read from INPUT.json file for local development
+    log.info('Actor.getInput() failed, reading from INPUT.json file');
     const fs = await import('fs/promises');
     const path = await import('path');
     const inputPath = path.join(process.cwd(), 'INPUT.json');
     try {
         const inputFile = await fs.readFile(inputPath, 'utf-8');
-        log.info('Read INPUT.json file:', inputFile);
         input = JSON.parse(inputFile) as Input;
-        log.info('Parsed input:', JSON.stringify(input, null, 2));
-        log.info('Using local INPUT.json file for development');
+        log.info('Successfully read and parsed INPUT.json');
     } catch (fileError) {
         log.error('Failed to read INPUT.json:', fileError);
-        throw new Error('Could not read input from Actor.getInput() or local INPUT.json file');
+        throw new Error('Could not read input from Actor.getInput() or INPUT.json file');
     }
 }
+
 await validateInput(input);
 
 const {
-    urls: urlsString,
-    contentSelector,
-    screenshotSelector = contentSelector,
-    sendNotificationText,
+    urls,
     sendNotificationTo,
     navigationTimeout = 30000,
     informOnError,
     maxRetries = 5,
     retryStrategy = 'on-block', // 'on-block', 'on-all-errors', 'never-retry'
 } = input;
-
-// Parse URLs string into array (split by newlines and filter empty lines)
-const urlStrings = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
-
-// Convert string URLs to UrlConfig objects
-const urls: UrlConfig[] = urlStrings.map(url => ({
-    url,
-    contentSelector,
-    screenshotSelector,
-    sendNotificationText
-}));
 
 // define name for a key-value store based on task ID or actor ID
 // (to be able to have more content checkers under one Apify account)
