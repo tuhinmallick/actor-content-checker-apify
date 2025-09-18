@@ -1,24 +1,8 @@
 {
-  "urls": [
-    {
-      "url": "https://www.apify.com/change-log",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Content changed!"
-    },
-    {
-      "url": "https://github.com/apify/apify-cli",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Content changed!"
-    },
-    {
-      "url": "https://example.com",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Content changed!"
-    }
-  ],
+  "urls": "https://www.apify.com/change-log\nhttps://github.com/apify/apify-cli\nhttps://example.com",
+  "contentSelector": "article",
+  "screenshotSelector": "article",
+  "sendNotificationText": "Content changed!",
   "sendNotificationTo": "test@example.com",
   "informOnError": "email",
   "navigationTimeout": 30000,
