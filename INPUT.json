@@ -2,21 +2,21 @@
   "urls": [
     {
       "url": "https://www.apify.com/change-log",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Content changed!"
+      "contentSelector": "main",
+      "screenshotSelector": "main",
+      "sendNotificationText": "Apify changelog updated!"
     },
     {
       "url": "https://github.com/apify/apify-cli",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Content changed!"
+      "contentSelector": ".repository-content",
+      "screenshotSelector": ".repository-content",
+      "sendNotificationText": "Apify CLI repository updated!"
     },
     {
       "url": "https://example.com",
-      "contentSelector": "article",
-      "screenshotSelector": "article",
-      "sendNotificationText": "Content changed!"
+      "contentSelector": "body",
+      "screenshotSelector": "body",
+      "sendNotificationText": "Example page changed!"
     }
   ],
   "sendNotificationTo": "test@example.com",

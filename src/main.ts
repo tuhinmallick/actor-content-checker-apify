@@ -230,6 +230,17 @@ for (const [urlKey, result] of urlResults) {
 
     if (previousScreenshot === null) {
         log.warning(`Running for the first time for URL: ${url}, no check`);
+        
+        // Push initial data for first run
+        await Actor.pushData({
+            url,
+            previousData: null,
+            content,
+            previousScreenshotUrl: null,
+            currentScreenshotUrl: store.getPublicUrl(currentScreenshotKey),
+            sendNotificationTo,
+            isFirstRun: true
+        });
     } else {
         // store data from this run
         await store.setValue(`previousScreenshot_${urlKey}.png`, previousScreenshot, { contentType: 'image/png' });
